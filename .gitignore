@@ -1,0 +1,25 @@
+# Java / Spring Boot
+target/
+*.class
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Node / React
+node_modules/
+dist/
+build/
+
+# Environment / secrets
+.env
+.env.*
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
