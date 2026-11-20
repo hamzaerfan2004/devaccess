@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from scan_request import ScanRequest
 from scanner import scan_url
 from transformer import transform_axe
@@ -19,8 +19,7 @@ def create_scan(request: ScanRequest):
             "results": transform_result,
             "error": None}
     else:
-        return {
-            "status": "failed",
-            "results": None,
-            "error": scan_result["error"]
-        }
+        raise HTTPException(
+            status_code=422,
+            detail=scan_result["error"]
+        )

@@ -18,9 +18,7 @@ def test_create_scan(mock_scan_url):
         "status": "completed",
         "results": {
             "violations": [],
-            "passes": [],
-            "incomplete": [],
-            "inapplicable": []
+            "incomplete": []
         },
         "error": None
     }
@@ -36,9 +34,7 @@ def test_create_scan(mock_scan_url):
         "status": "completed",
         "results": {
             "violations": [],
-            "passes": [],
-            "incomplete": [],
-            "inapplicable": []
+            "incomplete": []
         },
         "error": None
     }
@@ -56,10 +52,8 @@ def test_create_scan_failure(mock_scan_url):
         json={"url": "https://10.255.255.1"}
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 422
     assert response.json() == {
-        "status": "failed",
-        "results": None,
-        "error": "Page.goto: net::ERR_CONNECTION_TIMED_OUT"
+        "detail": "Page.goto: net::ERR_CONNECTION_TIMED_OUT"
     }
 

@@ -22,9 +22,12 @@ def transform_axe(results):
         for violation in results["violations"]
     ]
 
+    incomplete = [
+        transform_violation(item)
+        for item in results["incomplete"]
+    ]
+
     return {
         "violations": violations,
-        "passes": results["passes"],
-        "incomplete": results["incomplete"],
-        "inapplicable": results["inapplicable"]
+        "incomplete": incomplete
     }
