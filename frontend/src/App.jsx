@@ -5,9 +5,16 @@ function App() {
   const [url, setUrl] = useState('')
   const [scanResults, setScanResults] = useState(null)
   const [scanStatus, setScanStatus] = useState('idle')
+  const [errorMessage, setErrorMessage] = useState('')
+
   async function handleScan() {
-  setScanStatus('scanning')
-  setScanResults(null)
+    if (!url.trim() || scanStatus === 'scanning') {
+      return
+    }
+
+    setScanStatus('scanning')
+    setErrorMessage('')
+    setScanResults(null)
 
   try {
     const response = await fetch('http://localhost:8080/api/scans', {
@@ -30,6 +37,11 @@ function App() {
     console.log('Scan response:', data)
   } catch (error) {
     console.error('Scan request failed:', error)
+    setErrorMessage(
+      error instanceof TypeError
+        ? 'Unable to connect to DevAccess. Please check that the backend is running and try again.'
+        : error.message || 'Something went wrong. Please try again.'
+      )
     setScanStatus('failed')
   }
 }
@@ -69,14 +81,29 @@ function App() {
               value={url}
               onChange={(event) => setUrl(event.target.value)}
             />
-            <button type="button" onClick={handleScan}>
-              Scan website
+            <button
+              type="button"
+              onClick={handleScan}
+              disabled={!url.trim() || scanStatus === 'scanning'}
+            >
+              {scanStatus === 'scanning' ? (
+                <>
+                  <span className='spinner'></span>
+                  Scanning...
+                </>
+              ) : (
+                'Scan website')}
             </button>
           </div>
 
           <p className="helper-text">
             Enter a publicly accessible website URL to begin.
           </p>
+          {errorMessage && (
+            <p className='error-message' role='alert'>
+              {errorMessage}
+            </p>
+          )}
         </section>
 
         <section className="results-section">
