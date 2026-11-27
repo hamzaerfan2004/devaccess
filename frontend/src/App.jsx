@@ -3,12 +3,69 @@ import './App.css'
 
 function App() {
   const [url, setUrl] = useState('')
+  const [currentView, setCurrentView] = useState('scanner')
+  const [scanHistory, setScanHistory] = useState([])
+  const [historyStatus, setHistoryStatus] = useState('idle')
   const [scanResults, setScanResults] = useState(null)
+  const [scannedUrl, setScannedUrl] = useState('')
   const [scanStatus, setScanStatus] = useState('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [severityFilter, setSeverityFilter] = useState('all')
+  const totalAffectedElements = scanResults
+    ? scanResults.violations.reduce(
+      (total, finding) => total + finding.nodes.length,
+      0
+      )
+    : 0
+  const filteredViolations = scanResults
+    ? severityFilter === 'all'
+      ? scanResults.violations
+      : scanResults.violations.filter(
+        (finding) => finding.impact === severityFilter
+        )
+    : []
 
-  async function handleScan() {
-    if (!url.trim() || scanStatus === 'scanning') {
+  async function loadScanHistory() {
+    setHistoryStatus('loading')
+
+    try {
+      const response = await fetch('http://localhost:8080/api/scans')
+
+      if (!response.ok) {
+        throw new Error('Unable to load scan history.')
+      }
+
+      const data = await response.json()
+
+      setScanHistory(data)
+      setHistoryStatus('loaded')
+    } catch (error) {
+      console.error('History request failed:', error)
+      setHistoryStatus('failed')
+    }
+  }
+
+  async function loadScanDetails(scanId) {
+  try {
+    const response = await fetch(`http://localhost:8080/api/scans/${scanId}`)
+
+    if (!response.ok) {
+      throw new Error('Unable to load scan details.')
+    }
+
+    const data = await response.json()
+
+    setScanResults(data.scanResults.results)
+    setScannedUrl(data.url)
+    setSeverityFilter('all')
+    setCurrentView('scanner')
+  } catch (error) {
+    console.error('Scan details request failed:', error)
+  }
+}
+
+  async function handleScan(urlToScan = url) {
+    if (!urlToScan.trim() || scanStatus === 'scanning') {
       return
     }
 
@@ -22,7 +79,7 @@ function App() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url: urlToScan }),
     })
 
     const data = await response.json()
@@ -32,6 +89,7 @@ function App() {
     }
 
     setScanResults(data.results)
+    setScannedUrl(urlToScan)
     setScanStatus('completed')
 
     console.log('Scan response:', data)
@@ -54,13 +112,31 @@ function App() {
         </a>
 
         <nav className="navigation">
-          <a href="#scanner" className="active">Scanner</a>
-          <a href="#history">History</a>
+          <button
+            type='button'
+            className={currentView === 'scanner' ? 'active' : ''}
+            onClick={() => setCurrentView('scanner')}
+          >
+            Scanner
+          </button>
+
+          <button
+            type='button'
+            className={currentView === 'history' ? 'active' : ''}
+            onClick={() => {
+              setCurrentView('history')
+              loadScanHistory()
+            }}
+          >
+            History
+          </button>
           <a href="#about">About</a>
         </nav>
       </header>
 
       <main className="main-content">
+        {currentView === 'scanner' && (
+          <>
         <section className="intro">
           <span className="eyebrow">WEB ACCESSIBILITY ANALYSIS</span>
           <h1>Make your website more accessible.</h1>
@@ -83,7 +159,7 @@ function App() {
             />
             <button
               type="button"
-              onClick={handleScan}
+              onClick={() => handleScan()}
               disabled={!url.trim() || scanStatus === 'scanning'}
             >
               {scanStatus === 'scanning' ? (
@@ -109,26 +185,46 @@ function App() {
         <section className="results-section">
           <div className="section-heading">
             <h2>Accessibility overview</h2>
-            <span>No scan performed yet</span>
+            <div className='overview-actions'>
+              <span>
+                {scanResults ? `Results for ${scannedUrl}` : 'No scan performed yet'}
+              </span>
+
+              {scanResults && (
+                <button
+                  type='button'
+                  onClick={() => handleScan(scannedUrl)}
+                  disabled={scanStatus === 'scanning'}
+                >
+                  {scanStatus === 'scanning' ? 'Scanning...' : 'Rescan'}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="results-grid">
             <article className="result-card">
               <span className="result-label">Passed</span>
-              <strong>—</strong>
-              <span className="result-description">Checks passed</span>
+              <strong>{scanResults ? scanResults.passes.length : '-'}</strong>
+              <span className="result-description">Rules passed</span>
             </article>
 
             <article className="result-card">
               <span className="result-label">Violations</span>
               <strong>{scanResults ? scanResults.violations.length : '-'}</strong>
-              <span className="result-description">Issues detected</span>
+              <span className="result-description">Rules with issues</span>
             </article>
 
             <article className="result-card">
               <span className="result-label">Incomplete</span>
               <strong>{scanResults ? scanResults.incomplete.length : '-'}</strong>
-              <span className="result-description">Need manual review</span>
+              <span className="result-description">Rules needing review</span>
+            </article>
+
+            <article className="result-card">
+              <span className="result-label">Affected elements</span>
+              <strong>{scanResults ? totalAffectedElements : '-'}</strong>
+              <span className="result-description">Elements with violations</span>
             </article>
           </div>
         </section>
@@ -137,12 +233,29 @@ function App() {
             <div className="section-heading">
               <h2>Accessibility findings</h2>
               <span>
-                {scanResults.violations.length} violations found
+                {filteredViolations.length} of {scanResults.violations.length} violations shown
               </span>
+            </div>
+            <div className='severity-filters'>
+              {['all', 'critical', 'serious', 'moderate', 'minor'].map((severity) => (
+                <button
+                  key={severity}
+                  type='button'
+                  className={severityFilter === severity ? 'filter-button active' : 'filter-button'}
+                  onClick={() => setSeverityFilter(severity)}
+                >
+                  {severity === 'all' ? 'All' : severity.charAt(0).toUpperCase() + severity.slice(1)}
+                </button>
+              ))}
             </div>
 
             <div className="findings-list">
-              {scanResults.violations.map((finding) => (
+              {filteredViolations.length === 0 ? (
+                <p className='empty-state'>
+                  No violations found for this severity.
+                </p>
+              ) : (
+                filteredViolations.map((finding) => (
                 <article className="finding-card" key={finding.ruleId}>
                   <div className="finding-header">
                     <h3>{finding.help}</h3>
@@ -171,10 +284,44 @@ function App() {
                     ))}
                   </details>
                 </article>
-              ))}
+                ))
+            )}
           </div>
         </section>
       )}
+
+      {scanResults && scanResults.passes.length > 0 && (
+        <section className="findings-section">
+          <div className="section-heading">
+            <h2>Passed checks</h2>
+            <span>{scanResults.passes.length} rules passed</span>
+          </div>
+
+          <div className="findings-list">
+            {scanResults.passes.map((finding) => (
+              <article className="finding-card" key={finding.ruleId}>
+                <div className="finding-header">
+                  <h3>{finding.help}</h3>
+                  <span className="severity passed">Passed</span>
+                </div>
+
+                <p>{finding.description}</p>
+
+                <details className="finding-details">
+                  <summary>Learn more about this rule</summary>
+
+                  <p>
+                    <a href={finding.helpUrl} target="_blank" rel="noopener noreferrer">
+                      View axe-core rule documentation
+                    </a>
+                  </p>
+                </details>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
       {scanResults && scanResults.incomplete.length > 0 && (
         <section className="findings-section">
           <div className="section-heading">
@@ -216,6 +363,56 @@ function App() {
           </div>
         </section>
       )}
+      </>
+        )}
+
+                {currentView === 'history' && (
+                  <section className="results-section">
+                    <div className="section-heading">
+                      <h2>Scan history</h2>
+                      <span>Your previously completed scans</span>
+                    </div>
+
+                    {historyStatus === 'loading' && (
+                      <p>Loading scan history...</p>
+                    )}
+
+                    {historyStatus === 'failed' && (
+                      <p className="error-message">
+                        Unable to load scan history. Please try again.
+                      </p>
+                    )}
+
+                    {historyStatus === 'loaded' && scanHistory.length === 0 && (
+                      <p className="empty-state">
+                        No previous scans found. Scan a website to get started.
+                    </p>
+                    )}
+
+                    {historyStatus === 'loaded' && scanHistory.length > 0 && (
+                      <div className="findings-list">
+                        {scanHistory.map((scan) => (
+                          <article
+                            className="finding-card history-card"
+                            key={scan.id}
+                          >
+                            <h3>{scan.url}</h3>
+                            <p>
+                              Scanned: {new Date(scan.scannedAt).toLocaleString()}
+                            </p>
+                            <button
+                              type='button'
+                              className='history-button'
+                              onClick={() => loadScanDetails(scan.id)}
+                              >
+                                View scan results
+                            </button>
+                          </article>
+                        ))}
+                      </div>
+                      )}
+                    </section>
+                  )}
       </main>
 
       <footer className="footer">

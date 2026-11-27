@@ -71,3 +71,12 @@ a {
 .node-details pre:last-child {
   margin-bottom: 0;
 }
+.empty-state {
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px dashed #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+}

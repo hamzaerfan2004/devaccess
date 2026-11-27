@@ -1,12 +1,22 @@
+
 package com.hamzaerfan.devaccess.dto;
 
 import java.util.List;
 
 public class AnalysisResults {
+    private List<AnalysisViolation> passes;
     private List<AnalysisViolation> violations;
     private List<AnalysisViolation> incomplete;
 
     public AnalysisResults(){
+    }
+
+    public List<AnalysisViolation> getPasses(){
+        return passes;
+    }
+
+    public void setPasses(List<AnalysisViolation> passes){
+        this.passes = passes;
     }
 
     public List<AnalysisViolation> getViolations(){

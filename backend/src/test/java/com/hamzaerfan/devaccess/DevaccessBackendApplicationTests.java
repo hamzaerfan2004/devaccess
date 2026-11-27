@@ -41,6 +41,7 @@ class DevaccessBackendApplicationTests {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("completed"))
             .andExpect(jsonPath("$.error").value(nullValue()))
+            .andExpect(jsonPath("$.results.passes").isArray())
             .andExpect(jsonPath("$.results.violations").isArray())
             .andExpect(jsonPath("$.results.incomplete").isArray());
     }

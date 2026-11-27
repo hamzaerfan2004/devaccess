@@ -17,6 +17,7 @@ def test_create_scan(mock_scan_url):
     mock_scan_url.return_value = {
         "status": "completed",
         "results": {
+            "passes": [],
             "violations": [],
             "incomplete": []
         },
@@ -33,6 +34,7 @@ def test_create_scan(mock_scan_url):
     assert response.json() == {
         "status": "completed",
         "results": {
+            "passes": [],
             "violations": [],
             "incomplete": []
         },
